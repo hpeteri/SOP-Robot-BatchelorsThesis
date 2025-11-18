@@ -1,0 +1,37 @@
+import rclpy.node import Node
+from typing import Type, Dict, Any
+
+import sensor_base
+
+class SensorNodeBase(Node):
+    """
+    Base class for all sensor-related nodes in the SOP-Robot.
+    """
+
+    def __init__(self, node_name: str) -> None:
+        super().__init__(node_name)
+        self.node_name: [str] = node_name
+        self.sensors: Dict[str, SensorBase] = {}
+        self.get_logger().info(f"{name} initialized.")
+
+    def add_sensor(self, sensor_name: str, sensor_class: Type[SensorBase], *args: Any, **kwargs: Any) -> None:
+        """
+        Dynamically add a sensor to the node's attributes by setattr
+        """
+
+        if sensor_name not in self.sensors:
+            sensor = sensor_class(sensor_name, self, *args, **kwargs)
+            setattr(self, sensor_name, sensor)
+            self.sensors[sensor_name] = sensor
+            self.get_logger().warn(f"Sensor [{sensor_name}] added to '{self.node_name}' Node.")
+        else:
+            self.get_logger().warn(f"Sensor [{sensor_name}] already exists.")
+
+    def read_all_sensors(self) -> None:
+        """
+        Read all sensors in the node
+        """
+        for sensor_name in self.sensors:
+            sensor_instance = getattr(self, sensor_name)
+            if sensor_instance:
+                sensor_instance.read()
