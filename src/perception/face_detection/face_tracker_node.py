@@ -10,27 +10,16 @@ import time
 import sys
 import traceback
 from typing import List
-
 from ament_index_python.packages import get_package_share_directory
-
 from rclpy.node import Node
-
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from face_tracker_msgs.msg import Faces, Face as FaceMsg, Point2, Occurance
-
 from cv_bridge import CvBridge, CvBridgeError
-
 from .lip_movement_net import LipMovementDetector
 from .face_analyzer import FaceAnalyzer
 
 bridge = CvBridge()
-
-class WebcamError(Exception):
-    """signal that webcam has stopped working"""
-    pass
-
-# pr = cProfile.Profile()
 
 class FaceTrackerNode(Node):
     def __init__(self):
@@ -165,26 +154,6 @@ class FaceTrackerNode(Node):
 
         self.fps = FramesPerSecond()
         self.fps.start()
-
-    #     self.timer = self.create_timer(2, self.profile_cycle)
-    #     pr.enable()
-
-    # def profile_cycle(self):
-    #     global pr
-    #     pr.disable()
-    #     s = io.StringIO()
-    #     ps = pstats.Stats(pr, stream=s).sort_stats(pstats.SortKey.CUMULATIVE)
-    #     ps.print_stats()
-    #     self.logger.info("Profiler: -----------------------------")
-    #     self.logger.info(s.getvalue())
-    #     self.logger.info("Profiler: -----------------------------")
-    #     # Save result to file
-    #     pr.create_stats()
-    #     filename = f"profiler.prof"
-    #     pr.dump_stats(filename)
-
-    #     pr = cProfile.Profile()
-    #     pr.enable()
 
     def on_frame_received(self, img: Image):
         # convert ros img to opencv image

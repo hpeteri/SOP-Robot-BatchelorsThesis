@@ -11,6 +11,8 @@ HEIGHT     = 960
 FPS        = 30
 TOPIC_NAME = "i2e_webcam_raw/"
 
+bridge = CvBridge()
+
 class i2e_cv2Webcam:
     """
     cv2Webcam wrapper
