@@ -1,14 +1,22 @@
-import rclpy
+"""
+sensor_base.py
+
+This module contains the abstract base class 'SensorBase' for individual sensors.
+It defines the common interface and initialization for all sensor implementation,
+including the abstract method 'read', which must be implemented by subclasses.
+"""
+
+from abc import ABC, abstractmethod
 from rclpy.node import Node
-from std_msgs.msg import String
-from typing import Type, Dict, Any
-from abc import ABC, abstractMethod
+
 
 class SensorBase(ABC):
     """
     Abstract Base Class for individual sensors.
     """
-    def __init_(self, sensor_name: str, node: Node, *args, **kwargs) -> None:
+    #pylint: disable=too-few-public-methods
+
+    def __init__(self, sensor_name: str, node: Node) -> None:
         self.name: str = sensor_name
         self.node: Node = node
 
@@ -17,4 +25,3 @@ class SensorBase(ABC):
         """
         Read Sensor data and publish it.
         """
-        pass

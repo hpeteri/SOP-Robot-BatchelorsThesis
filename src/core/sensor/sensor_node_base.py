@@ -1,7 +1,13 @@
-import rclpy.node import Node
-from typing import Type, Dict, Any
+"""
+sensor_node_base.py
 
-import sensor_base
+This module containts the base class 'SensorNodeBase' for Sensor Nodes.
+It defines the common interface and initialization for all sensor node implementations
+"""
+
+from typing import Type, Dict, Any
+from rclpy.node import Node
+from .sensor_base import SensorBase
 
 class SensorNodeBase(Node):
     """
@@ -10,11 +16,12 @@ class SensorNodeBase(Node):
 
     def __init__(self, node_name: str) -> None:
         super().__init__(node_name)
-        self.node_name: [str] = node_name
+        self.node_name: str = node_name
         self.sensors: Dict[str, SensorBase] = {}
-        self.get_logger().info(f"{name} initialized.")
+        self.get_logger().info(f"{node_name} initialized.")
 
-    def add_sensor(self, sensor_name: str, sensor_class: Type[SensorBase], *args: Any, **kwargs: Any) -> None:
+    def add_sensor(self, sensor_name: str, sensor_class: Type[SensorBase], \
+                   *args: Any, **kwargs: Any) -> None:
         """
         Dynamically add a sensor to the node's attributes by setattr
         """
