@@ -1,5 +1,5 @@
 """
-sensor_ut.py
+test_sensor.py
 
 This module implements Unit Tests for SensorBase and SensorNodeBase modules
 """
@@ -17,10 +17,12 @@ class MockSensor(SensorBase):
 
     def __init__(self, sensor_name: str, node: Node) -> None:
         super().__init__(sensor_name, node)
+        self.is_read = False
         self.mock_data = "Mock sensor data"
 
     def read(self) -> None:
         self.node.get_logger().info(f"Mock published: {self.mock_data}")
+        self.is_read = True
 
 
 #pylint: disable=redefined-outer-name
@@ -30,7 +32,7 @@ def ut_node():
     Fixure to initialize a Node
     """
     rclpy.init()
-    node = SensorNodeBase("sendor_ut_node")
+    node = SensorNodeBase("UT Node")
     yield node
     rclpy.shutdown()
 
@@ -44,3 +46,16 @@ def test_add_sensor(ut_node):
     assert "mock_0" in ut_node.sensors
     assert isinstance(ut_node.mock_0, MockSensor)
     assert isinstance(ut_node.sensors["mock_0"], MockSensor)
+
+def test_read_sensors(ut_node):
+    """
+    Test that sensors are read
+    """
+
+    ut_node.add_sensor("mock_0", MockSensor)
+    ut_node.add_sensor("mock_1", MockSensor)
+
+    ut_node.read_sensors()
+
+    assert ut_node.mock_0.is_read
+    assert ut_node.mock_1.is_read

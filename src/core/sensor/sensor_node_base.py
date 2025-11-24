@@ -18,7 +18,7 @@ class SensorNodeBase(Node):
         super().__init__(node_name)
         self.node_name: str = node_name
         self.sensors: Dict[str, SensorBase] = {}
-        self.get_logger().info(f"{node_name} initialized.")
+        self.get_logger().info(f"Node [{node_name}] initialized.")
 
     def add_sensor(self, sensor_name: str, sensor_class: Type[SensorBase], \
                    *args: Any, **kwargs: Any) -> None:
@@ -30,11 +30,11 @@ class SensorNodeBase(Node):
             sensor = sensor_class(sensor_name, self, *args, **kwargs)
             setattr(self, sensor_name, sensor)
             self.sensors[sensor_name] = sensor
-            self.get_logger().warn(f"Sensor [{sensor_name}] added to '{self.node_name}' Node.")
+            self.get_logger().warn(f"Sensor [{sensor_name}] added to Node [{self.node_name}].")
         else:
-            self.get_logger().warn(f"Sensor [{sensor_name}] already exists.")
+            self.get_logger().warn(f"Sensor [{sensor_name}] already exists in Node [{self.node_name}].")
 
-    def read_all_sensors(self) -> None:
+    def read_sensors(self) -> None:
         """
         Read all sensors in the node
         """
