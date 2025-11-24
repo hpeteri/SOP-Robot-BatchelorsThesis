@@ -4,17 +4,18 @@ i2e_webcam_node.py
 This Module implements i2eyes Webcam Sensor Node
 """
 
-from rclpy import Node
+from rclpy.node import Node
 import cv2
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 from core.sensor import SensorBase, SensorNodeBase
+from core.util import run_node
 
 INDEX      = 0
 WIDTH      = 1280
 HEIGHT     = 960
 FPS        = 30
-TOPIC_NAME = "i2e_webcam_raw/"
+TOPIC_NAME = "i2e_webcam_raw"
 
 bridge = CvBridge()
 
@@ -57,8 +58,8 @@ class I2eWebcamSensor(SensorBase):
     """
     #pylint: disable=too-few-public-methods
 
-    def __init__(self, sensor_name: str, node: Node, *args, **kwargs) -> None:
-        super().__init__(sensor_name, node, args, kwargs)
+    def __init__(self, sensor_name: str, node: Node) -> None:
+        super().__init__(sensor_name, node)
 
         self.publisher = self.node.create_publisher(Image, TOPIC_NAME, 5)
         self.webcam = I2eCv2Webcam(INDEX, WIDTH, HEIGHT, FPS)
@@ -67,6 +68,7 @@ class I2eWebcamSensor(SensorBase):
         """
         Read and publish webcam Image
         """
+        frame = None
         try:
             success, frame = self.webcam.capture.read()
 
@@ -84,9 +86,9 @@ class I2eWebcamSensor(SensorBase):
         try:
             data = bridge.cv2_to_imgmsg(frame, "bgr8")
             self.publisher.publish(data)
-        except CvBridgeError:
+        #pylint: disable=broad-exception-caught
+        except Exception:
             pass
-
 
 class I2eWebcamNode(SensorNodeBase):
     """
@@ -94,6 +96,12 @@ class I2eWebcamNode(SensorNodeBase):
     """
 
     def __init__(self, *args, **kwargs) -> None:
-        super().__init__("i2e_webcam_node", *args, **kwargs)
-        self.add_sensor("i2e_webcam", I2eWebcamSensor)
-        self.timer = self.create_timer(1 / FPS, self.read_all_sensors)
+        super().__init__("i2e_webcam", *args, **kwargs)
+        self.add_sensor("webcam", I2eWebcamSensor)
+        self.timer = self.create_timer(1 / FPS, self.read_sensors)
+
+def main():
+    """
+    Run I2eWebcamNode
+    """
+    run_node(I2eWebcamNode)
