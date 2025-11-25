@@ -14,8 +14,8 @@ class SensorNodeBase(Node):
     Base class for all sensor-related nodes in the SOP-Robot.
     """
 
-    def __init__(self, node_name: str) -> None:
-        super().__init__(node_name)
+    def __init__(self, node_name: str, **kwargs) -> None:
+        super().__init__(node_name, **kwargs)
         self.node_name: str = node_name
         self.sensors: Dict[str, SensorBase] = {}
         self.get_logger().info(f"Node [{node_name}] initialized.")

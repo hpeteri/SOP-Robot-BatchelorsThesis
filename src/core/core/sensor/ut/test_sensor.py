@@ -7,7 +7,8 @@ This module implements Unit Tests for SensorBase and SensorNodeBase modules
 import pytest
 import rclpy
 from rclpy.node import Node
-from sensor import SensorNodeBase, SensorBase
+from core.sensor import SensorNodeBase, SensorBase
+from std_msgs.msg import String
 
 class MockSensor(SensorBase):
     """
@@ -16,9 +17,10 @@ class MockSensor(SensorBase):
     #pylint: disable=too-few-public-methods
 
     def __init__(self, sensor_name: str, node: Node) -> None:
-        super().__init__(sensor_name, node)
+        super().__init__(sensor_name, node, namespace="namespace")
         self.is_read = False
         self.mock_data = "Mock sensor data"
+        self.publisher = self.create_publisher(String, "publisher_name", 10)
 
     def read(self) -> None:
         self.node.get_logger().info(f"Mock published: {self.mock_data}")
@@ -59,3 +61,11 @@ def test_read_sensors(ut_node):
 
     assert ut_node.mock_0.is_read
     assert ut_node.mock_1.is_read
+
+def test_sensor_topic_nam(ut_node):
+    """
+    Test that topic name is combination of namespace and topic
+    """
+
+    ut_node.add_sensor("mock_0", MockSensor)
+    assert ut_node.mock_0.publisher.topic_name == "namespace/publisher_name"

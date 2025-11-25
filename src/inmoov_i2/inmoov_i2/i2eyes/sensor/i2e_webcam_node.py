@@ -15,7 +15,7 @@ INDEX      = 0
 WIDTH      = 1280
 HEIGHT     = 960
 FPS        = 30
-TOPIC_NAME = "i2e_webcam_raw"
+TOPIC_NAME = "webcam_raw"
 
 bridge = CvBridge()
 
@@ -25,6 +25,16 @@ class I2eCv2Webcam:
     """
 
     def __init__(self, video_in: int | str, width: int, height: int, fps: int):
+
+        # set log level
+        # CV_LOG_SILENT 0
+        # CV_LOG_LEVEL_FATAL 1
+        # CV_LOG_LEVEL_ERROR 2
+        # CV_LOG_LEVEL_WARN 3
+        # CV_LOG_LEVEL_INFO 4
+        # CV_LOG_LEVEL_DEBUG 5
+        cv2.setLogLevel(2)
+
         self.capture = cv2.VideoCapture(video_in)
 
         if self.is_valid():
@@ -43,7 +53,7 @@ class I2eCv2Webcam:
         """
         Close the cv2 handle
         """
-        if self.is_valid():
+        if not self.is_valid():
             return
 
         self.capture.release()
@@ -62,30 +72,36 @@ class I2eWebcamSensor(SensorBase):
         super().__init__(sensor_name, node)
 
         self.publisher = self.node.create_publisher(Image, TOPIC_NAME, 5)
+        self.node.get_logger().info(f"publisher ['{self.publisher.topic_name}'] added.")
         self.webcam = I2eCv2Webcam(INDEX, WIDTH, HEIGHT, FPS)
 
     def read(self) -> None:
         """
         Read and publish webcam Image
         """
+
         frame = None
+        
+        # Try reading a frame
         try:
             success, frame = self.webcam.capture.read()
-
-            if not success:
-                # i think read anyway throws, so we can throw here aswell to try reopen the webcam
+        
+            if not success or frame is None:
                 # @TODO - LOG
                 #pylint: disable=broad-exception-raised
                 raise Exception
-
+        
         #pylint: disable=broad-exception-caught
         except Exception:
             self.webcam.close()
             self.webcam = I2eCv2Webcam(INDEX, WIDTH, HEIGHT, FPS)
-
+            return
+        
+        # Try publishing
         try:
             data = bridge.cv2_to_imgmsg(frame, "bgr8")
             self.publisher.publish(data)
+
         #pylint: disable=broad-exception-caught
         except Exception:
             pass

@@ -13,8 +13,13 @@ def run_node(node_class):
     node = node_class()
     
     try:
-        rclpy.spin(node)
+        try:
+            rclpy.spin(node)
+        except KeyboardInterrupt:
+            pass
     finally:
         if node is not None:
             node.destroy_node()
-        rclpy.shutdown()
+
+        if rclpy.ok():
+            rclpy.shutdown()
