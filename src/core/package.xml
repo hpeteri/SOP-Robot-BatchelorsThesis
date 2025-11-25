@@ -4,7 +4,7 @@
   <version>0.1.0</version>
   <description>Core module for SOP-Robot</description>
 
-  <maintainer email="na@example.com">Henrik Peteri & Petra Heikkinen</maintainer>
+  <maintainer email="na@example.com">na</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_python</buildtool_depend>

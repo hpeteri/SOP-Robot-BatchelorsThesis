@@ -75,7 +75,7 @@
     requirements: "/home/{{ ansible_env.USER }}/SOP-Robot/requirements.txt"
     virtualenv: "/home/{{ ansible_env.USER }}/SOP-Robot/.venv"
     state: present
-    extra_args: "--cache-dir /home/{{ ansible_env.USER }}/SOP-Robot/.venv/.pip_cache"
+    extra_args: "--cache-dir /home/{{ ansible_env.USER }}/SOP-Robot/.venv/.pip_cache --progress-bar=on -v"
 
 - name: Source ROS setup in .bashrc
   lineinfile:

@@ -1,11 +1,17 @@
-# tab completion
+# Use a NumPy version compatible with cv_bridge (and other compiled ROS2 extensions)
+numpy<2,>=1.22  # pin to <2, but reasonably modern 1.x
+
+# Tab completion
 argcomplete
 
-# Keras and TensorFlow
-keras
-tf-keras
+# Keras / TensorFlow
+tensorflow>=2.14,<2.16
 
-# Testing and linting
+# Perception / ML package dependencies
+dlib>=19.24
+scikit-learn>=1.2,<1.3
+
+# Testing & linting
 flake8-blind-except
 flake8-builtins
 flake8-class-newline
@@ -14,22 +20,17 @@ flake8-deprecated
 flake8-docstrings
 flake8-import-order
 flake8-quotes
-pytest
+pytest>=7.0
 pytest-repeat
 pytest-rerunfailures
-pylint
+pylint>=2.14
 pyyaml
 lark
 
-# SpeechRecognition and audio
-# dlib
-# TTS
-# simpleaudio
-# SpeechRecognition
-# farm-haystack
-# farm-haystack[inference]
-
 # Computer vision
-opencv-python
+opencv-python>=4.8,<4.11
 deepface==0.0.92
-progressbar
+progressbar2>=4.0
+
+# (Optional) ros2 numpy‑conversion helper, if you use numpy <-> ROS msg conversion
+ros2-numpy==0.0.5

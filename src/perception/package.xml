@@ -2,10 +2,10 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>perception</name>
-  <version>0.0.1</version>
-  <description>Face tracker</description>
-  <author>Arman Mansouri</author>
-  <maintainer email="na@example.com">com</maintainer>
+  <version>0.1.0</version>
+  <description>Perception Package</description>
+  <author>Henrik Peteri</author>
+  <maintainer email="na@example.com">na</maintainer>
   <license>MIT</license>
 
   <depend>python3-keras</depend>
