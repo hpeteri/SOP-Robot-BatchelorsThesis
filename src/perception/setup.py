@@ -31,7 +31,7 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "face_detection = perception.face_detection.node.face_tracker_node:main",
+            "face_detection = perception.face_detection.node.face_detection_node:main",
         ],
     },
 )

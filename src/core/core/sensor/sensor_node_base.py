@@ -18,7 +18,7 @@ class SensorNodeBase(Node):
         super().__init__(node_name, **kwargs)
         self.node_name: str = node_name
         self.sensors: Dict[str, SensorBase] = {}
-        self.get_logger().info(f"Node [{node_name}] initialized.")
+        self.get_logger().info(f"Sensor Node [{node_name}] initialized.")
 
     def add_sensor(self, sensor_name: str, sensor_class: Type[SensorBase], \
                    *args: Any, **kwargs: Any) -> None:

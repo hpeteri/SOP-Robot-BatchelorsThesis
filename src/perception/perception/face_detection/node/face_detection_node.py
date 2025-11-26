@@ -23,7 +23,7 @@ FACE_TOPIC = "faces"
 MODEL_NAME = "1_32_False_True_0.25_lip_motion_net_model.h5"
 SHAPE_PREDICTOR_NAME = "shape_predictor_68_face_landmarks.dat"
 
-class FaceTrackerNode(Node):
+class FaceDetectionNode(Node):
     def __init__(self):
         super().__init__("face_detection_node")
 
@@ -110,7 +110,7 @@ class FaceTrackerNode(Node):
 
 
 def main(args=None):
-    run_node(FaceTrackerNode)
+    run_node(FaceDetectionNode)
 
 
 if __name__ == "__main__":
