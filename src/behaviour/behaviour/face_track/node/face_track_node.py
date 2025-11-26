@@ -30,7 +30,6 @@ class FaceTrackNode(Node):
 
         self.create_subscription(Faces, "/faces", self.face_list_callback, 2)
 
-
         self.last_published_tracking_goal = 0.0
         self.get_logger().info("Node [face_track] initialized.")
 

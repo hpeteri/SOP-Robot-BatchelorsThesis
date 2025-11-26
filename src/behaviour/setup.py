@@ -23,6 +23,7 @@ setup(
     entry_points={
         "console_scripts": [
             "face_track = behaviour.face_track.node.face_track_node:main",
+            "head_movement = behaviour.movement.node.head_movement_node:main",
         ],
     },
 )
