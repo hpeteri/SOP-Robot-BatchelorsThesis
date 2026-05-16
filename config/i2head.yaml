@@ -1,0 +1,114 @@
+# i2head.yaml
+# PCA9685 servo configuration for InMoov i2Head
+# Maps joint names to PCA9685 channels and angle limits.
+#
+# Edit channel numbers to match your actual servo wiring.
+# A single PCA9685 supports 16 channels (0-15).
+# For >16 servos, add a second board with I2C address 0x41 (or 0x42, etc.)
+# and extend addresses to channels 16-31, etc.
+#
+# Pulse range defaults: 500-2500 us (standard RC servo).
+# Adjust MIN_PULSE/MAX_PULSE if servos have non-standard ranges.
+
+# Head movement (replaces Dynamixel for i2Head)
+# head_yaw_joint:
+#   channel: 0
+#   angle_min: 0
+#   angle_max: 180
+#   home: 90
+#   min_pulse_us: 500
+#   max_pulse_us: 2500
+#
+# head_pitch_joint:
+#   channel: 1
+#   angle_min: 0
+#   angle_max: 180
+#   home: 90
+
+# i2Eyes – independent eye movement
+# left_eye_horizontal:
+#   channel: 2
+#   angle_min: 0
+#   angle_max: 180
+#   home: 90
+#
+# left_eye_vertical:
+#   channel: 3
+#   angle_min: 0
+#   angle_max: 180
+#   home: 90
+#
+# right_eye_horizontal:
+#   channel: 4
+#   angle_min: 0
+#   angle_max: 180
+#   home: 90
+#
+# right_eye_vertical:
+#   channel: 5
+#   angle_min: 0
+#   angle_max: 180
+#   home: 90
+
+# Eyelids
+# left_eyelid_upper:
+#   channel: 6
+#   angle_min: 0
+#   angle_max: 180
+#   home: 90
+#
+# left_eyelid_lower:
+#   channel: 7
+#   angle_min: 0
+#   angle_max: 180
+#   home: 90
+#
+# right_eyelid_upper:
+#   channel: 8
+#   angle_min: 0
+#   angle_max: 180
+#   home: 90
+#
+# right_eyelid_lower:
+#   channel: 9
+#   angle_min: 0
+#   angle_max: 180
+#   home: 90
+
+# Eyebrows
+# left_brow_inner:
+#   channel: 10
+#   angle_min: 0
+#   angle_max: 180
+#   home: 90
+#
+# left_brow_outer:
+#   channel: 11
+#   angle_min: 0
+#   angle_max: 180
+#   home: 90
+#
+# right_brow_inner:
+#   channel: 12
+#   angle_min: 0
+#   angle_max: 180
+#   home: 90
+#
+# right_brow_outer:
+#   channel: 13
+#   angle_min: 0
+#   angle_max: 180
+#   home: 90
+
+# Mouth
+# mouth_corner_left:
+#   channel: 14
+#   angle_min: 0
+#   angle_max: 180
+#   home: 90
+#
+# mouth_corner_right:
+#   channel: 15
+#   angle_min: 0
+#   angle_max: 180
+#   home: 90

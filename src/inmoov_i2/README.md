@@ -1,47 +1,79 @@
 # inmoov_i2
 
-InMoov i2-pään ja -silmien sensorisolmut. Tuottaa raakadataa fyysisistä antureista (kamera) uuden data-vetoisen arkkitehtuurin mukaisesti.
+InMoov i2 head and eye sensor nodes. Produces raw data from physical sensors (camera) according to the new data-driven architecture.
 
-## Rakenne
+```mermaid
+flowchart LR
+    subgraph I2eWebcamNode["I2eWebcamNode (SensorNodeBase)"]
+        direction TB
+        TIM["Timer (30 FPS)"]
+        SENS["I2eWebcamSensor"]
+        CV2["I2eCv2Webcam"]
+        TIM -->|"trigger read()"| SENS
+        SENS -->|"capture"| CV2
+    end
+
+    subgraph Hardware["Hardware"]
+        CAM["Webcam\n(USB /dev/video0)"]
+    end
+
+    subgraph Output["Output"]
+        TOPIC["/i2e_webcam\nsensor_msgs/Image"]
+    end
+
+    subgraph Params["ROS2 Parameters"]
+        P1["topic_name: /i2e_webcam"]
+        P2["camera_index: 0"]
+        P3["camera_width: 1280"]
+        P4["camera_height: 960"]
+        P5["camera_fps: 30"]
+    end
+
+    CAM --> CV2
+    SENS --> TOPIC
+    Params -.-> I2eWebcamNode
+```
+
+## Structure
 
 ```
 inmoov_i2/
-├── i2eyes/       # Silmien webcam-sensori
-└── i2head/       # (Tulossa) Pään servo-konfiguraatio
+├── i2eyes/       # Eye webcam sensor
+└── i2head/       # (Planned) Head servo configuration
 ```
 
 ## i2eyes
 
 ### I2eWebcamNode
 
-Webcam-sensorisolmu. Julkaisee kameraa dataa perception-paketin käytettäväksi.
+Webcam sensor node. Publishes camera data for consumption by the perception package.
 
-**Julkaisijat:**
-- `topic_name` (`sensor_msgs/Image`) – raaka kamerakuva (oletus: `/i2e_webcam`)
+**Publishes on:**
+- `topic_name` (`sensor_msgs/Image`) – raw camera feed (default: `/i2e_webcam`)
 
 ### I2eCv2Webcam
 
-Ohut OpenCV `VideoCapture`-kääre. Tarjoaa `is_valid()`- ja `close()`-metodit.
+Thin OpenCV `VideoCapture` wrapper. Provides `is_valid()` and `close()` methods.
 
 ### I2eWebcamSensor
 
-`SensorBase`-toteutus, joka lukee webcam-kuvan ja julkaisee sen ROS Image -viestinä.
+`SensorBase` implementation that reads webcam frames and publishes them as ROS Image messages.
 
 ### I2eWebcamNode
 
-`SensorNodeBase`-toteutus, joka käynnistää webcam-sensorin ajastimella.
+`SensorNodeBase` implementation that runs the webcam sensor on a timer.
 
-## ROS2-parametrit
+## ROS2 Parameters
 
-| Parametri | Tyyppi | Oletus | Kuvaus |
-|-----------|--------|--------|--------|
-| `topic_name` | string | `/i2e_webcam` | Julkaisun topic |
-| `camera_index` | int | 0 | Kameraindeksi |
-| `camera_width` | int | 1280 | Kuvan leveys |
-| `camera_height` | int | 960 | Kuvan korkeus |
-| `camera_fps` | int | 30 | Kuvanopeus |
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `topic_name` | string | `/i2e_webcam` | Publish topic |
+| `camera_index` | int | 0 | Camera device index |
+| `camera_width` | int | 1280 | Image width |
+| `camera_height` | int | 960 | Image height |
+| `camera_fps` | int | 30 | Frame rate |
 
-## Huomioitavaa
+## Notes
 
-- i2head-alipaketti on varattu i2Head-moduulin servokonfiguraatiolle (YAML-pohjainen moduulimäärittely)
-- Webcamin uudelleenalustus jos kuvanluku epäonnistuu
+- The i2head subpackage is reserved for the i2Head module's servo configuration (YAML-based module definition)
+- Webcam is re-initialized if frame reading fails
