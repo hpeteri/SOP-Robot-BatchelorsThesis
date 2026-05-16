@@ -12,20 +12,35 @@ from perception.face_detection.util.fps_tracker import FPSTracker
 from perception.face_detection.util.ros_utils import CvBridgePublisher
 from core.util import run_node
 
-# Subscribed Topics
-IMAGE_TOPIC = "/i2e_webcam"
-
-# Published Topics
-FACE_IMAGE_TOPIC = "face_detection"
-FACE_TOPIC = "faces"
-
-
-MODEL_NAME = "1_32_False_True_0.25_lip_motion_net_model.h5"
-SHAPE_PREDICTOR_NAME = "shape_predictor_68_face_landmarks.dat"
-
 class FaceDetectionNode(Node):
     def __init__(self):
         super().__init__("face_detection_node")
+
+        self.declare_parameter("image_topic", "/i2e_webcam")
+        self.declare_parameter("face_image_topic", "face_detection")
+        self.declare_parameter("face_topic", "faces")
+        self.declare_parameter("lip_motion_model", "1_32_False_True_0.25_lip_motion_net_model.h5")
+        self.declare_parameter("shape_predictor", "shape_predictor_68_face_landmarks.dat")
+        self.declare_parameter("face_recognizer_enabled", True)
+        self.declare_parameter("correlation_tracker", True)
+        self.declare_parameter("cluster_similarity_threshold", 0.3)
+        self.declare_parameter("subcluster_similarity_threshold", 0.2)
+        self.declare_parameter("pair_similarity_maximum", 1.0)
+        self.declare_parameter("face_recognition_model", "SFace")
+        self.declare_parameter("face_detection_model", "yunet")
+
+        image_topic = self.get_parameter("image_topic").value
+        face_image_topic = self.get_parameter("face_image_topic").value
+        face_topic = self.get_parameter("face_topic").value
+        model_name = self.get_parameter("lip_motion_model").value
+        shape_predictor_name = self.get_parameter("shape_predictor").value
+        face_recognizer_enabled = self.get_parameter("face_recognizer_enabled").value
+        correlation_tracker = self.get_parameter("correlation_tracker").value
+        cluster_similarity_threshold = self.get_parameter("cluster_similarity_threshold").value
+        subcluster_similarity_threshold = self.get_parameter("subcluster_similarity_threshold").value
+        pair_similarity_maximum = self.get_parameter("pair_similarity_maximum").value
+        face_recognition_model = self.get_parameter("face_recognition_model").value
+        face_detection_model = self.get_parameter("face_detection_model").value
 
         pkg_share = get_package_share_directory("perception")
 
@@ -33,14 +48,14 @@ class FaceDetectionNode(Node):
             pkg_share,
             "face_detection",
             "models",
-            MODEL_NAME
+            model_name
         )
 
         shape_predictor_path = os.path.join(
             pkg_share,
             "face_detection",
             "predictors",
-            SHAPE_PREDICTOR_NAME
+            shape_predictor_name
         )
 
         # Initialize components
@@ -50,20 +65,27 @@ class FaceDetectionNode(Node):
         )
         self.face_analyzer = FaceAnalyzer(
             logger=self.get_logger(),
-            lip_movement_detector=self.lip_detector
+            lip_movement_detector=self.lip_detector,
+            face_recognizer_enabled=face_recognizer_enabled,
+            correlation_tracker=correlation_tracker,
+            cluster_similarity_threshold=cluster_similarity_threshold,
+            subcluster_similarity_threshold=subcluster_similarity_threshold,
+            pair_similarity_maximum=pair_similarity_maximum,
+            face_recognition_model=face_recognition_model,
+            face_detection_model=face_detection_model,
         )
 
-        #FPS is drawn onto the 
+        #FPS is drawn onto the
         self.fps_tracker = FPSTracker()
 
-        self.face_img_pub = CvBridgePublisher(self, FACE_IMAGE_TOPIC)
+        self.face_img_pub = CvBridgePublisher(self, face_image_topic)
         self.get_logger().info(f"publisher ['{self.face_img_pub.publisher.topic_name}'] added.")
 
-        self.face_pub = self.create_publisher(Faces, FACE_TOPIC, 1)
+        self.face_pub = self.create_publisher(Faces, face_topic, 1)
         self.get_logger().info(f"publisher ['{self.face_pub.topic_name}'] added.")
-        
-        self.subscriber = self.create_subscription(Image, IMAGE_TOPIC, self.on_frame_received, 1)
-        
+
+        self.subscriber = self.create_subscription(Image, image_topic, self.on_frame_received, 1)
+
         self.font = cv2.FONT_HERSHEY_SIMPLEX
         self.get_logger().info("FaceTrackerNode initialized.")
 
