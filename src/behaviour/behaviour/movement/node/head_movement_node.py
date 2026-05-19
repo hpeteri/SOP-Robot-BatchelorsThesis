@@ -1,6 +1,7 @@
 import rclpy
 from rclpy.node import Node
 import math
+import random
 import time
 from typing import Optional, List
 
@@ -41,6 +42,14 @@ class HeadMovementNode(Node):
         self.declare_parameter("eye_joint_names", ["eye_horizontal_joint", "eye_vertical_joint"])
         self.declare_parameter("default_trajectory_duration", 0.3)
 
+        self.declare_parameter("idle_interval_sec", 5.0)
+        self.declare_parameter("idle_min_duration_sec", 0.75)
+        self.declare_parameter("idle_max_move_ratio", 0.6667)
+        self.declare_parameter("idle_after_no_face_sec", 4.0)
+        self.declare_parameter("glance_chance", 0.005)
+        self.declare_parameter("eyes_center_h", 0.0)
+        self.declare_parameter("eyes_center_v", 0.0)
+
         self.PRIORITY_IDLE = self.get_parameter("priority_idle").value
         self.PRIORITY_FACE_TRACK = self.get_parameter("priority_face_track").value
         self.PRIORITY_GESTURE = self.get_parameter("priority_gesture").value
@@ -64,11 +73,19 @@ class HeadMovementNode(Node):
         self.EYE_JOINT_NAMES = self.get_parameter("eye_joint_names").value
         self.DEFAULT_TRAJECTORY_DURATION = self.get_parameter("default_trajectory_duration").value
 
-        # State Variables
+        self.IDLE_INTERVAL_SEC = self.get_parameter("idle_interval_sec").value
+        self.IDLE_MIN_DURATION_SEC = self.get_parameter("idle_min_duration_sec").value
+        self.IDLE_MAX_MOVE_RATIO = self.get_parameter("idle_max_move_ratio").value
+        self.IDLE_AFTER_NO_FACE_SEC = self.get_parameter("idle_after_no_face_sec").value
+        self.GLANCE_CHANCE = self.get_parameter("glance_chance").value
+        self.EYES_CENTER_H = self.get_parameter("eyes_center_h").value
+        self.EYES_CENTER_V = self.get_parameter("eyes_center_v").value
+
         self.head_servo_state: Optional[List[float]] = None
         self.eyes_servo_state: Optional[List[float]] = None
         self.active_priority = self.NO_ACTIVE_PRIORITY
         self.is_gesture_active = False
+        self.last_face_track_time = 0.0
 
         self.head_action_client = ActionClient(self, FollowJointTrajectory, "/head_controller/follow_joint_trajectory")
         self.eyes_action_client = ActionClient(self, FollowJointTrajectory, "/eyes_controller/follow_joint_trajectory")
@@ -101,7 +118,11 @@ class HeadMovementNode(Node):
             10
         )
 
+        self.idle_timer = self.create_timer(self.IDLE_INTERVAL_SEC, self.idle_timer_callback)
+
         self.get_logger().info("Node [head_movement] Initialized.")
+        self.get_logger().info(f"  Idle timer: {self.IDLE_INTERVAL_SEC}s interval, expire-after {self.IDLE_AFTER_NO_FACE_SEC}s idle")
+        self.get_logger().info("  Gestures: nod, shake")
 
     def head_state_callback(self, msg: JointTrajectoryControllerState):
         if msg.actual.positions:
@@ -154,6 +175,9 @@ class HeadMovementNode(Node):
             return
 
         self.active_priority = goal.priority
+
+        if goal.priority == self.PRIORITY_FACE_TRACK:
+            self.last_face_track_time = self.get_clock().now().nanoseconds / 1e9
 
         head_targets, eye_targets, action_type = self._transform_camera_angle_to_absolute_target(goal)
 
@@ -208,33 +232,155 @@ class HeadMovementNode(Node):
 
         client.send_goal_async(goal_msg)
 
-    def _execute_shake(self, magnitude: float, repetitions: int, duration: float):
-        current_pan = self.head_servo_state[0] if self.head_servo_state else 0.0
+    def idle_timer_callback(self):
 
-        for i in range(repetitions):
+        if self.active_priority >= self.PRIORITY_FACE_TRACK:
+            return
+
+        now = self.get_clock().now().nanoseconds / 1e9
+
+        if now - self.last_face_track_time < self.IDLE_AFTER_NO_FACE_SEC:
+            if random.random() < self.GLANCE_CHANCE:
+                self._execute_glance()
+            return
+
+        if self.head_servo_state is None or self.eyes_servo_state is None:
+            return
+
+        current_pan = self.head_servo_state[0]
+
+        max_travel = abs(self.HEAD_PAN_MIN_RAD) + abs(self.HEAD_PAN_MAX_RAD)
+        max_idle_move = self.IDLE_MAX_MOVE_RATIO * max_travel
+
+        goal_pan = random.uniform(
+            max(self.HEAD_PAN_MIN_RAD, current_pan - max_idle_move),
+            min(self.HEAD_PAN_MAX_RAD, current_pan + max_idle_move)
+        )
+
+        pan_travel = current_pan - goal_pan
+        travel_distance = abs(pan_travel)
+
+        movement_ns = int(max(travel_distance / max_idle_move * 3.0, self.IDLE_MIN_DURATION_SEC) * 1e9)
+
+        eye_v = random.gauss(self.EYES_CENTER_V, (self.EYES_CENTER_V + self.EYE_V_MAX_RAD) / 3)
+
+        if pan_travel > 0:
+            eye_h = random.uniform(self.EYE_H_MIN_RAD, self.EYE_H_MIN_RAD / 6)
+        elif pan_travel < 0:
+            eye_h = random.uniform(self.EYE_H_MAX_RAD / 6, self.EYE_H_MAX_RAD)
+        else:
+            eye_h = random.uniform(self.EYE_H_MIN_RAD, self.EYE_H_MAX_RAD)
+
+        eye_h = self._apply_joint_limits(eye_h, self.EYE_H_MIN_RAD, self.EYE_H_MAX_RAD)
+        eye_v = self._apply_joint_limits(eye_v, self.EYE_V_MIN_RAD, self.EYE_V_MAX_RAD)
+
+        self.get_logger().info(
+            f"idle: head pan {goal_pan:.3f} rad, eye [{eye_h:.3f}, {eye_v:.3f}] rad"
+        )
+
+        self._create_and_publish_trajectory(
+            self.head_action_client, self.HEAD_JOINT_NAMES,
+            [goal_pan, self.head_servo_state[1]], movement_ns / 1e9
+        )
+
+        self._create_and_publish_trajectory(
+            self.eyes_action_client, self.EYE_JOINT_NAMES,
+            [eye_h, eye_v], movement_ns / 1e9
+        )
+
+        next_delay = movement_ns + random.randint(int(0.75 * 1e9), int(1.5 * 1e9))
+        self.idle_timer.timer_period_ns = next_delay
+        self.idle_timer.reset()
+
+    def _execute_glance(self, delay: float = 0.5):
+
+        if self.eyes_servo_state is None:
+            return
+
+        eye_h, eye_v = self._get_random_eye_location(distance=0.5)
+
+        self._create_and_publish_trajectory(
+            self.eyes_action_client, self.EYE_JOINT_NAMES,
+            [eye_h, eye_v], 0.3
+        )
+
+        self._create_and_publish_trajectory(
+            self.eyes_action_client, self.EYE_JOINT_NAMES,
+            [self.EYES_CENTER_H, self.EYES_CENTER_V], delay
+        )
+
+    def _get_random_eye_location(self, distance: float = 0.0) -> tuple[float, float]:
+
+        current_h = self.eyes_servo_state[0] if self.eyes_servo_state else 0.0
+        candidates = []
+
+        if self.EYE_H_MIN_RAD < current_h - distance:
+            candidates.append(random.uniform(self.EYE_H_MIN_RAD, current_h - distance))
+        if self.EYE_H_MAX_RAD > current_h + distance:
+            candidates.append(random.uniform(current_h + distance, self.EYE_H_MAX_RAD))
+
+        if not candidates:
+            candidates.append(current_h)
+
+        random_h = random.choice(candidates)
+        random_v = random.uniform(self.EYE_V_MIN_RAD, self.EYE_V_MAX_RAD)
+        return random_h, random_v
+
+    def _center_eyes(self, duration_sec: Optional[float] = None):
+
+        d = duration_sec if duration_sec else 0.3
+        self._create_and_publish_trajectory(
+            self.eyes_action_client, self.EYE_JOINT_NAMES,
+            [self.EYES_CENTER_H, self.EYES_CENTER_V], d
+        )
+
+    def _execute_shake(self, magnitude: float, repetitions: int, duration: float):
+        if self.head_servo_state is None or self.eyes_servo_state is None:
+            self.get_logger().warn("Cannot shake: servo state unknown")
+            return
+
+        current_pan = self.head_servo_state[0]
+        current_eye_h = self.eyes_servo_state[0]
+
+        for _ in range(repetitions):
             target_r = self._apply_joint_limits(current_pan + magnitude, self.HEAD_PAN_MIN_RAD, self.HEAD_PAN_MAX_RAD)
-            self._create_and_publish_trajectory(self.head_action_client, [self.HEAD_JOINT_NAMES[0]], [target_r], duration)
+            eye_r = self._apply_joint_limits(current_eye_h - magnitude, self.EYE_H_MIN_RAD, self.EYE_H_MAX_RAD)
+            self._create_and_publish_trajectory(self.head_action_client, self.HEAD_JOINT_NAMES, [target_r, self.head_servo_state[1]], duration)
+            self._create_and_publish_trajectory(self.eyes_action_client, self.EYE_JOINT_NAMES, [eye_r, self.eyes_servo_state[1]], duration)
             time.sleep(duration + 0.1)
 
             target_l = self._apply_joint_limits(current_pan - magnitude, self.HEAD_PAN_MIN_RAD, self.HEAD_PAN_MAX_RAD)
-            self._create_and_publish_trajectory(self.head_action_client, [self.HEAD_JOINT_NAMES[0]], [target_l], duration)
+            eye_l = self._apply_joint_limits(current_eye_h + magnitude, self.EYE_H_MIN_RAD, self.EYE_H_MAX_RAD)
+            self._create_and_publish_trajectory(self.head_action_client, self.HEAD_JOINT_NAMES, [target_l, self.head_servo_state[1]], duration)
+            self._create_and_publish_trajectory(self.eyes_action_client, self.EYE_JOINT_NAMES, [eye_l, self.eyes_servo_state[1]], duration)
             time.sleep(duration + 0.1)
 
-        self._create_and_publish_trajectory(self.head_action_client, [self.HEAD_JOINT_NAMES[0]], [current_pan], duration)
+        self._create_and_publish_trajectory(self.head_action_client, self.HEAD_JOINT_NAMES, [current_pan, self.head_servo_state[1]], duration)
+        self._create_and_publish_trajectory(self.eyes_action_client, self.EYE_JOINT_NAMES, [current_eye_h, self.eyes_servo_state[1]], duration)
         time.sleep(duration + 0.1)
 
     def _execute_nod(self, magnitude: float, duration: float):
-        current_pitch = self.head_servo_state[1] if self.head_servo_state else 0.0
+        if self.head_servo_state is None or self.eyes_servo_state is None:
+            self.get_logger().warn("Cannot nod: servo state unknown")
+            return
+
+        current_pitch = self.head_servo_state[1]
+        current_eye_v = self.eyes_servo_state[1]
 
         target_up = self._apply_joint_limits(current_pitch + magnitude, self.HEAD_PITCH_MIN_RAD, self.HEAD_PITCH_MAX_RAD)
-        self._create_and_publish_trajectory(self.head_action_client, [self.HEAD_JOINT_NAMES[1]], [target_up], duration)
+        eye_down = self._apply_joint_limits(current_eye_v - magnitude, self.EYE_V_MIN_RAD, self.EYE_V_MAX_RAD)
+        self._create_and_publish_trajectory(self.head_action_client, self.HEAD_JOINT_NAMES, [self.head_servo_state[0], target_up], duration)
+        self._create_and_publish_trajectory(self.eyes_action_client, self.EYE_JOINT_NAMES, [self.eyes_servo_state[0], eye_down], duration)
         time.sleep(duration + 0.1)
 
         target_down = self._apply_joint_limits(current_pitch - magnitude, self.HEAD_PITCH_MIN_RAD, self.HEAD_PITCH_MAX_RAD)
-        self._create_and_publish_trajectory(self.head_action_client, [self.HEAD_JOINT_NAMES[1]], [target_down], duration)
+        eye_up = self._apply_joint_limits(current_eye_v + magnitude, self.EYE_V_MIN_RAD, self.EYE_V_MAX_RAD)
+        self._create_and_publish_trajectory(self.head_action_client, self.HEAD_JOINT_NAMES, [self.head_servo_state[0], target_down], duration)
+        self._create_and_publish_trajectory(self.eyes_action_client, self.EYE_JOINT_NAMES, [self.eyes_servo_state[0], eye_up], duration)
         time.sleep(duration + 0.1)
 
-        self._create_and_publish_trajectory(self.head_action_client, [self.HEAD_JOINT_NAMES[1]], [current_pitch], duration)
+        self._create_and_publish_trajectory(self.head_action_client, self.HEAD_JOINT_NAMES, [self.head_servo_state[0], current_pitch], duration)
+        self._create_and_publish_trajectory(self.eyes_action_client, self.EYE_JOINT_NAMES, [self.eyes_servo_state[0], current_eye_v], duration)
         time.sleep(duration + 0.1)
 
 def main(args=None):

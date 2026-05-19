@@ -3,6 +3,8 @@ ROS2 package setup script to run inmoov_i2 package
 """
 
 from setuptools import setup
+from glob import glob
+import os
 
 package_name = "inmoov_i2"
 
@@ -17,6 +19,8 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (os.path.join("share", package_name, "launch"),
+            glob("inmoov_i2/launch/*")),
     ],
     install_requires=["setuptools"],
     zip_safe=True,

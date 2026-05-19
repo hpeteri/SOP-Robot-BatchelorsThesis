@@ -1,0 +1,120 @@
+# i2head_facs.yaml
+#
+# FACS-pohjainen ilmejärjestelmä InMoov i2Headille.
+#
+# action_units:
+#   au_{N}: FACS Action Unit numero N.
+#     servos: servo -> {neutral: lepoasento, activated: aktivoitu}
+#
+# expressions:
+#   {name}: nimetty ilme AU-intensiteettivektorina.
+#     aus: AU_numero -> intensiteetti (0.0–1.0)
+#     sequence: (opt.) listan vaiheita, joista jokaisella oma aus + duration
+
+facs:
+  action_units:
+    au_1:
+      description: "Inner brow raiser"
+      servos:
+        left_brow_inner: {neutral: 90, activated: 40}
+        right_brow_inner: {neutral: 90, activated: 40}
+
+    au_2:
+      description: "Outer brow raiser"
+      servos:
+        left_brow_outer: {neutral: 90, activated: 50}
+        right_brow_outer: {neutral: 90, activated: 50}
+
+    au_4:
+      description: "Brow lowerer"
+      servos:
+        left_brow_inner: {neutral: 90, activated: 120}
+        right_brow_inner: {neutral: 90, activated: 120}
+        left_brow_outer: {neutral: 90, activated: 110}
+        right_brow_outer: {neutral: 90, activated: 110}
+
+    au_6:
+      description: "Cheek raiser (orbicularis oculi)"
+      servos:
+        left_eyelid_lower: {neutral: 90, activated: 70}
+        right_eyelid_lower: {neutral: 90, activated: 70}
+
+    au_12:
+      description: "Lip corner puller (zygomaticus) – smile"
+      servos:
+        mouth_corner_left: {neutral: 90, activated: 50}
+        mouth_corner_right: {neutral: 90, activated: 130}
+
+    au_15:
+      description: "Lip corner depressor (depressor anguli oris) – sad"
+      servos:
+        mouth_corner_left: {neutral: 90, activated: 120}
+        mouth_corner_right: {neutral: 90, activated: 60}
+
+    au_45:
+      description: "Blink – eye closure (levator palpebrae)"
+      servos:
+        left_eyelid_upper: {neutral: 90, activated: 0}
+        right_eyelid_upper: {neutral: 90, activated: 0}
+
+  expressions:
+    neutral:
+      description: "Neutral resting face"
+      duration: 0.5
+      aus: {}
+
+    smile:
+      description: "Happy / friendly"
+      duration: 0.3
+      aus:
+        4: 0.0
+        6: 0.4
+        12: 0.8
+        15: 0.0
+
+    sad:
+      description: "Sad / disappointed"
+      duration: 0.4
+      aus:
+        1: 0.5
+        4: 0.2
+        15: 0.6
+
+    angry:
+      description: "Angry / frustrated"
+      duration: 0.3
+      aus:
+        4: 0.8
+        15: 0.3
+
+    surprised:
+      description: "Surprised"
+      duration: 0.25
+      aus:
+        1: 0.8
+        2: 0.8
+
+    blink:
+      description: "Quick eye blink"
+      duration: 0.12
+      sequence:
+        - aus: {45: 1.0}
+          duration: 0.08
+        - aus: {45: 0.0}
+          duration: 0.15
+
+    wink_left:
+      description: "Wink with left eye"
+      duration: 0.1
+      sequence:
+        - aus: {45: 1.0}
+          duration: 0.08
+        - aus: {45: 0.0}
+          duration: 0.2
+
+    eyebrow_raise:
+      description: "Raise both eyebrows"
+      duration: 0.3
+      aus:
+        1: 0.7
+        2: 0.7
